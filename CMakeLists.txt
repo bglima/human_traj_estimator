@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   rotations_helper
   tf_conversions
   eigen_conversions
+  franka_msgs
 #   pbo_service
   )
 

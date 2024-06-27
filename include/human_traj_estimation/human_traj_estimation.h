@@ -10,6 +10,7 @@
 #include <rotations_helper/euler_angles_helper.h>
 // #include <pbo_service/updateKest.h>
 #include <std_srvs/Trigger.h>
+#include <franka_msgs/FrankaState.h>
 
 class TrajEstimator
 {
@@ -23,7 +24,7 @@ public:
   void alphaCallback   (const std_msgs::Float32ConstPtr& msg );
   void dWrenchCallback (const geometry_msgs::WrenchStampedConstPtr& msg );
   void velocityCallback(const geometry_msgs::TwistStampedConstPtr& msg );
-  void currPoseCallback(const geometry_msgs::PoseStampedConstPtr& msg );
+  void currPoseCallback(const franka_msgs::FrankaStateConstPtr& msg);
 //   double evaluateFis   (double dforce, double vel );
   bool updatePoseEstimate(geometry_msgs::PoseStamped& ret); 
   bool resetPose(std_srvs::Trigger::Request  &req,

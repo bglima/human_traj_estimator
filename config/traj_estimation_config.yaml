@@ -1,30 +1,32 @@
 #wrench_topic    : "filtered_wrench_base"
-wrench_topic    : "filtered_wrench_base"
-dwrench_topic   : "delta_force"
-vel_topic       : "current_velocity"
-pos_topic       : "current_pose"
 
-assistance_topic: "assistance"
-reference_traj  : "human_target"
+sampling_time: 0.008
 
+K_tras: 0.005 #0.00005
+K_rot: 0.0005 #0.0000001
 
-base_link: "base_link"
-tool_link: "grasping"
+base_link: panda_link0
+tool_link: panda_hand
 
+max_fl: 0.831
 
-robot_has_human_reference: false
+wrench_topic    : /franka_state_controller/F_ext
+dwrench_topic   : delta_force
+vel_topic       : current_velocity
+pos_topic       : /franka_state_controller/franka_states
+
+assistance_topic: assistance
+reference_traj  : human_target
+
+robot_has_human_reference: False
+update_Kest: update_Kest
 
 #K_assistance: 0.0002
 #K_assistance: 0.0001
 #K_assistance: 0.0001
 
-# UR5 
-#K_tras: 0.0001
-#K_rot: 0.000001
 
-#UR10
-K_tras: 0.00005
-K_rot: 0.0000001
+
 
 
 

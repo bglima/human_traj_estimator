@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Apply a wrench from keyboard -->
+  <arg name="apply_body_wrench" default="true"/>
+
+  <!-- Launch the node to apply a force -->
+  <group if="$(arg apply_body_wrench)">
+    <rosparam command="load" file="$(find human_traj_estimator)/config/apply_body_wrench.yaml" />
+    <node name="apply_body_wrench_node" pkg="human_traj_estimator" type="apply_body_wrench.py" respawn="false" output="screen" />
+  </group>
+
+</launch>

@@ -1,0 +1,13 @@
+apply_body_wrench:
+   body_name: panda_link7
+   reference_frame: world
+   reference_point:
+      x: 0
+      y: 0
+      z: 0
+   start_time:
+      secs: 0
+      nsecs: 0
+   duration:
+      secs: 0.01
+      nsecs: 0

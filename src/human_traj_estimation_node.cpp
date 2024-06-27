@@ -1,6 +1,7 @@
 #include <human_traj_estimation/human_traj_estimation.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/tf.h>
+#include <franka_msgs/FrankaState.h>
 
 int main(int argc, char **argv)
 {
@@ -8,12 +9,12 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
   ros::AsyncSpinner spinner(4);
   spinner.start();
-  
+
   TrajEstimator te(nh);
-  
+
   std::string wrench_topic, dwrench_topic, vel_topic, pos_topic, assistance_topic, reference_traj, update_Kest;
-  
-  if ( !nh.getParam ( "wrench_topic", wrench_topic) )
+
+  if (!nh.getParam( "wrench_topic", wrench_topic))
   {
     wrench_topic = "filtered_wrench_base";
     ROS_WARN_STREAM (nh.getNamespace() << " /wrench_topic not set. default " << wrench_topic );
@@ -49,18 +50,20 @@ int main(int argc, char **argv)
     robot_ref = false;
     ROS_WARN_STREAM (nh.getNamespace() << " /robot_has_human_reference not set. default " << robot_ref);
   }
-  if ( !nh.getParam ( "update_Kest", update_Kest) )
+  if (!nh.getParam("update_Kest", update_Kest))
   {
     update_Kest = "update_Kest";
     ROS_WARN_STREAM (nh.getNamespace() << " /update_Kest not set. default " << update_Kest);
   }
-  
-  ros::Subscriber wrench_sub    = nh.subscribe(wrench_topic , 10, &TrajEstimator::wrenchCallback  , &te);
-  ros::Subscriber dwrench_sub   = nh.subscribe(dwrench_topic, 10, &TrajEstimator::dWrenchCallback , &te);
+
+
+  ros::Subscriber wrench_sub    = nh.subscribe(wrench_topic , 10, &TrajEstimator::wrenchCallback, &te);
+  ros::Subscriber dwrench_sub   = nh.subscribe(dwrench_topic, 10, &TrajEstimator::dWrenchCallback, &te);
   ros::Subscriber velocity_sub  = nh.subscribe(vel_topic    , 10, &TrajEstimator::velocityCallback, &te);
   ros::Subscriber pose_sub      = nh.subscribe(pos_topic    , 10, &TrajEstimator::currPoseCallback, &te);
-  ros::Subscriber alpha_sub     = nh.subscribe("/alpha"     , 10, &TrajEstimator::alphaCallback   , &te);
-  
+  ros::Subscriber alpha_sub     = nh.subscribe("/alpha"     , 10, &TrajEstimator::alphaCallback, &te);
+
+  // Publishers part
   ros::Publisher assistance_pub = nh.advertise<geometry_msgs::TwistStamped>(assistance_topic,10);
   ros::Publisher trajectory_pub = nh.advertise<geometry_msgs::PoseStamped>(reference_traj,10);
   ros::Publisher r_trajectory_pub = nh.advertise<geometry_msgs::PoseStamped>("/target_cart_pose",10);
@@ -74,13 +77,17 @@ int main(int argc, char **argv)
   ros::Rate rate(125);
   
   static tf::TransformBroadcaster br;
-  
+
+  // The inizializaion part is complete. Now the computational part starts
+  std::cout << "Completed the inizialization part. Now the computational part starts...\n";
+  std::cin.get();
+
   while (ros::ok())
   {
     geometry_msgs::PoseStamped p;
     if (!te.updatePoseEstimate(p))
     {
-      ROS_ERROR_STREAM_THROTTLE(5.0,"error in updating the estimated pose . IS the pose initialized?");
+      ROS_ERROR_STREAM_THROTTLE(5.0,"error in updating the estimated pose . Is the pose initialized?");
     }
     else
     {
@@ -95,9 +102,7 @@ int main(int argc, char **argv)
       tf::poseMsgToTF(p.pose,transform);
       br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "base_link", "human_trg_pose"));
       te.init_pos_ok = false;
-
     }
-    
     
     ROS_INFO_STREAM_THROTTLE(5.0,"looping .");
     
