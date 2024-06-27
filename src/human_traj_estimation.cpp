@@ -64,13 +64,35 @@ Eigen::Vector6d TrajEstimator::getVel() {return velocity_;}
 Eigen::Vector6d TrajEstimator::getDwrench() {return dW_;}
 
 void TrajEstimator::wrenchCallback(const geometry_msgs::WrenchStampedConstPtr& msg)
-{  
-  w_b_(0) = msg->wrench.force.x;
-  w_b_(1) = msg->wrench.force.y;
-  w_b_(2) = msg->wrench.force.z;
-  w_b_(3) = msg->wrench.torque.x;
-  w_b_(4) = msg->wrench.torque.y;
-  w_b_(5) = msg->wrench.torque.z;
+{
+  // We expect the robot-felt force measurement.
+  // Then, we convert it to work as the human-applied force
+  w_b_(0) = -msg->wrench.force.x;
+  w_b_(1) = -msg->wrench.force.y;
+  w_b_(2) = -msg->wrench.force.z;
+  w_b_(3) = -msg->wrench.torque.x;
+  w_b_(4) = -msg->wrench.torque.y;
+  w_b_(5) = -msg->wrench.torque.z;
+
+  // Exctract the quaternion orientation
+  Eigen::Quaterniond current_quaternion;
+  tf2::fromMsg(cur_pos_.pose.orientation, current_quaternion);
+
+  // Convert to a transformation in 3d
+  Eigen::Isometry3d rotation_transform = Eigen::Isometry3d::Identity();
+  rotation_transform.rotate(current_quaternion);
+
+  // Extract Eigen vectors
+  Eigen::Vector3d forces(w_b_.head(3));
+  Eigen::Vector3d torques(w_b_.tail(3));
+
+  // Update forces and torques
+  forces = rotation_transform * forces;
+  torques = rotation_transform * torques; // Assumes all the mass is concentrated at the EE frame
+
+  // Give it back to the original attribute
+  w_b_.head(3) = forces;
+  w_b_.tail(3) = torques;
 }
 
 void TrajEstimator::alphaCallback(const std_msgs::Float32ConstPtr& msg)

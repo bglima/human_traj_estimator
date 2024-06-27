@@ -80,7 +80,6 @@ int main(int argc, char **argv)
 
   // The inizializaion part is complete. Now the computational part starts
   std::cout << "Completed the inizialization part. Now the computational part starts...\n";
-  std::cin.get();
 
   while (ros::ok())
   {
