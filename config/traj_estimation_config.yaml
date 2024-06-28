@@ -2,7 +2,7 @@
 
 sampling_time: 0.008
 
-K_tras: 0.005 #0.00005
+K_tras: 0.007 #0.00005
 K_rot: 0.0005 #0.0000001
 
 base_link: panda_link0
@@ -10,16 +10,18 @@ tool_link: panda_hand
 
 max_fl: 0.831
 
-wrench_topic    : /franka_state_controller/F_ext
+wrench_topic    : franka_state_controller/F_ext
 dwrench_topic   : delta_force
 vel_topic       : current_velocity
-pos_topic       : /franka_state_controller/franka_states
+pos_topic       : franka_state_controller/franka_states
 
 assistance_topic: assistance
-reference_traj  : human_target
+reference_traj  : /human_ref
 
 robot_has_human_reference: False
 update_Kest: update_Kest
+
+n_of_wrench_bias_samples: 100
 
 #K_assistance: 0.0002
 #K_assistance: 0.0001

@@ -12,13 +12,8 @@ int main(int argc, char **argv)
 
   TrajEstimator te(nh);
 
-  std::string wrench_topic, dwrench_topic, vel_topic, pos_topic, assistance_topic, reference_traj, update_Kest;
+  std::string dwrench_topic, vel_topic, pos_topic, assistance_topic, reference_traj, update_Kest;
 
-  if (!nh.getParam( "wrench_topic", wrench_topic))
-  {
-    wrench_topic = "filtered_wrench_base";
-    ROS_WARN_STREAM (nh.getNamespace() << " /wrench_topic not set. default " << wrench_topic );
-  }
   if ( !nh.getParam ( "dwrench_topic", dwrench_topic) )
   {
     dwrench_topic = "delta_force";
@@ -57,7 +52,7 @@ int main(int argc, char **argv)
   }
 
 
-  ros::Subscriber wrench_sub    = nh.subscribe(wrench_topic , 10, &TrajEstimator::wrenchCallback, &te);
+  ros::Subscriber wrench_sub    = nh.subscribe(te.wrench_topic , 10, &TrajEstimator::wrenchCallback, &te);
   ros::Subscriber dwrench_sub   = nh.subscribe(dwrench_topic, 10, &TrajEstimator::dWrenchCallback, &te);
   ros::Subscriber velocity_sub  = nh.subscribe(vel_topic    , 10, &TrajEstimator::velocityCallback, &te);
   ros::Subscriber pose_sub      = nh.subscribe(pos_topic    , 10, &TrajEstimator::currPoseCallback, &te);
@@ -71,6 +66,7 @@ int main(int argc, char **argv)
 //   ros::ServiceServer update_Kest_server = nh.advertiseService(update_Kest, &TrajEstimator::updateKestSrv, &te);
   
   ros::ServiceServer reset_pose_srv = nh.advertiseService("reset_pose_estimation", &TrajEstimator::resetPose, &te);
+  ros::ServiceServer compute_wrench_bias_srv = nh.advertiseService("compute_wrench_bias", &TrajEstimator::computeWrenchBias, &te);
   
   ros::Duration(0.1).sleep();
   

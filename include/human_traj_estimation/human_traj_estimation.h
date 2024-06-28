@@ -7,6 +7,9 @@
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Float32.h>
+#include <tf_conversions/tf_eigen.h>
+#include <tf2_eigen/tf2_eigen.h>
+#include <eigen_conversions/eigen_msg.h>
 #include <rotations_helper/euler_angles_helper.h>
 // #include <pbo_service/updateKest.h>
 #include <std_srvs/Trigger.h>
@@ -29,6 +32,8 @@ public:
   bool updatePoseEstimate(geometry_msgs::PoseStamped& ret); 
   bool resetPose(std_srvs::Trigger::Request  &req,
                  std_srvs::Trigger::Response &res);
+  bool computeWrenchBias(std_srvs::Trigger::Request  &req,
+                 std_srvs::Trigger::Response &res);
   
 //   bool updateKestSrv( pbo_service::updateKest::Request  &req,
 //                       pbo_service::updateKest::Response &res);
@@ -39,6 +44,8 @@ public:
   Eigen::Affine3d T_robot_base_targetpose_;
   bool init_pos_ok;
 
+  std::string wrench_topic;
+
 private:
   ros::NodeHandle nh_;
   
@@ -48,6 +55,9 @@ private:
   Eigen::Vector6d w_b_;
   Eigen::Vector6d velocity_;
   Eigen::Vector6d dW_;
+
+  Eigen::Vector6d w_bias_;
+  int n_of_wrench_bias_samples_;
   
   bool first_cb_;
   
@@ -66,6 +76,10 @@ private:
   double alpha_;
   
   double dt_;
+
+  double deadband_;
+
+
 /*  
   fl::Engine*         engine_;
   fl::InputVariable*  d_force_ ;

@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
   eigen_conversions
   franka_msgs
+  tf2_eigen
 #   pbo_service
   )
 

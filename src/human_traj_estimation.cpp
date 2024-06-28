@@ -2,7 +2,6 @@
 #include <human_traj_estimation/utils.h>
 #include <ros/package.h>
 #include <tf_conversions/tf_eigen.h>
-#include <tf_conversions/tf_eigen.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf/transform_listener.h>
 #include <eigen_conversions/eigen_msg.h>
@@ -13,8 +12,18 @@ TrajEstimator::TrajEstimator(ros::NodeHandle nh)
 :nh_(nh)
 {
   w_b_     .setZero();
+  w_bias_  .setZero();
   dW_      .setZero();
   velocity_.setZero();
+  alpha_ = 0.95;
+  init_pos_ok = false;
+  first_cb_ = false;
+
+  if (!nh.getParam( "wrench_topic", wrench_topic))
+  {
+    wrench_topic = "filtered_wrench_base";
+    ROS_WARN_STREAM (nh.getNamespace() << " /wrench_topic not set. default " << wrench_topic );
+  }
   
   if ( !nh_.getParam ( "sampling_time", dt_) )
   {
@@ -54,10 +63,6 @@ TrajEstimator::TrajEstimator(ros::NodeHandle nh)
     ROS_WARN_STREAM (nh_.getNamespace() << " /max_fl set. default: " << max_fl_);
   }
   
-  alpha_ = 0.95;
-  init_pos_ok = false;
-  first_cb_ = false;
-
 }
 
 Eigen::Vector6d TrajEstimator::getVel() {return velocity_;}
@@ -73,6 +78,8 @@ void TrajEstimator::wrenchCallback(const geometry_msgs::WrenchStampedConstPtr& m
   w_b_(3) = -msg->wrench.torque.x;
   w_b_(4) = -msg->wrench.torque.y;
   w_b_(5) = -msg->wrench.torque.z;
+
+  w_b_ += w_bias_;
 
   // Exctract the quaternion orientation
   Eigen::Quaterniond current_quaternion;
@@ -124,6 +131,7 @@ void TrajEstimator::velocityCallback(const geometry_msgs::TwistStampedConstPtr& 
 void TrajEstimator::currPoseCallback(const franka_msgs::FrankaStateConstPtr& msg)
 {   
 
+
   // Modified part. cur_pos_ is the variable that needs to assigned after the procedure.
   // A matrix with the values passed by msg is initialized, recreating the rotation matrix 
   Eigen::Matrix3d rot_mat;
@@ -165,6 +173,50 @@ void TrajEstimator::currPoseCallback(const franka_msgs::FrankaStateConstPtr& msg
   // std::cout << "T_robot_base_target_pose_ translation form: \n" << T_robot_base_targetpose_.translation() << "\n";  
   // std::cout << "T_robot_base_target_pose_ rotation form: \n" << T_robot_base_targetpose_.rotation() << "\n";  
 }
+
+bool TrajEstimator::computeWrenchBias(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+{
+  nh_.getParam("n_of_wrench_bias_samples", n_of_wrench_bias_samples_);
+  
+  Eigen::Vector6d wrench_bias_cumulator = Eigen::Vector6d::Zero();
+
+  ROS_INFO("wrench topic is: %s", wrench_topic.c_str());
+
+  for (int i=0; i<n_of_wrench_bias_samples_; i++)
+  {
+    auto wrench_msg_ptr = ros::topic::waitForMessage<geometry_msgs::WrenchStamped>(wrench_topic, nh_);
+    
+    if(wrench_msg_ptr != NULL){
+      
+      geometry_msgs::WrenchStamped wrench_msg = *wrench_msg_ptr;
+
+      Eigen::Vector6d wrench;
+      
+
+      wrench(0) = wrench_msg.wrench.force.x;
+      wrench(1) = wrench_msg.wrench.force.y;
+      wrench(2) = wrench_msg.wrench.force.z;
+      wrench(3) = wrench_msg.wrench.torque.x;
+      wrench(4) = wrench_msg.wrench.torque.y;
+      wrench(5) = wrench_msg.wrench.torque.z;
+
+      wrench_bias_cumulator += wrench;
+
+    }
+    else
+    {
+      ROS_ERROR("No message was received for the wrench bias computation!");
+    }
+  }
+
+  w_bias_ = wrench_bias_cumulator / n_of_wrench_bias_samples_;
+
+  ROS_INFO_STREAM("resetting wrench bias. this wrench: \n" << w_bias_);
+  
+  res.success=true;
+  return true;
+}
+
 
 
 bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
@@ -229,7 +281,7 @@ bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
 
       // Updating the orientation part of the PoseStamped message type ret and printing it
       tf2::convert(rotation_quaternion, ret.pose.orientation);
-      ROS_INFO_STREAM("pose:\n"<<ret);
+      // ROS_INFO_STREAM("pose:\n"<<ret);
     }
     last_pose_ = ret;
   }

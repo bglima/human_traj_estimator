@@ -86,7 +86,7 @@
                                         <relative_minimum>-10</relative_minimum>
                                         <type>2</type>
                                     </scale>
-                                    <topic>/human_target</topic>
+                                    <topic>/human_ref</topic>
                                     <type>geometry_msgs/PoseStamped</type>
                                 </x_axis>
                                 <y_axis>
@@ -99,7 +99,7 @@
                                         <relative_minimum>-1000</relative_minimum>
                                         <type>0</type>
                                     </scale>
-                                    <topic>/human_target</topic>
+                                    <topic>/human_ref</topic>
                                     <type>geometry_msgs/PoseStamped</type>
                                 </y_axis>
                             </axes>
@@ -287,7 +287,7 @@
                                         <relative_minimum>-10</relative_minimum>
                                         <type>2</type>
                                     </scale>
-                                    <topic>/human_target</topic>
+                                    <topic>/human_ref</topic>
                                     <type>geometry_msgs/PoseStamped</type>
                                 </x_axis>
                                 <y_axis>
@@ -300,7 +300,7 @@
                                         <relative_minimum>-1000</relative_minimum>
                                         <type>0</type>
                                     </scale>
-                                    <topic>/human_target</topic>
+                                    <topic>/human_ref</topic>
                                     <type>geometry_msgs/PoseStamped</type>
                                 </y_axis>
                             </axes>
@@ -488,7 +488,7 @@
                                         <relative_minimum>-10</relative_minimum>
                                         <type>2</type>
                                     </scale>
-                                    <topic>/human_target</topic>
+                                    <topic>/human_ref</topic>
                                     <type>geometry_msgs/PoseStamped</type>
                                 </x_axis>
                                 <y_axis>
@@ -501,7 +501,7 @@
                                         <relative_minimum>-1000</relative_minimum>
                                         <type>0</type>
                                     </scale>
-                                    <topic>/human_target</topic>
+                                    <topic>/human_ref</topic>
                                     <type>geometry_msgs/PoseStamped</type>
                                 </y_axis>
                             </axes>
