@@ -92,7 +92,7 @@ def listener():
     rospy.init_node('receiver', anonymous=True)
 
     # Subscription to the topics 
-    rospy.Subscriber("/human_target", geometry_msgs.msg.PoseStamped, updatedcallback)
+    rospy.Subscriber("/human_ref", geometry_msgs.msg.PoseStamped, updatedcallback)
     rospy.Subscriber("/franka_state_controller/franka_states", franka_msgs.msg.FrankaState, measuredcallback)
 
     # spin() simply keeps python from exiting until this node is stopped

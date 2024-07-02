@@ -14,11 +14,12 @@ wrench_topic    : franka_state_controller/F_ext
 dwrench_topic   : delta_force
 vel_topic       : current_velocity
 pos_topic       : franka_state_controller/franka_states
-
+alpha_topic     : alpha
+bool_topic      : flag
 assistance_topic: assistance
-reference_traj  : /human_ref
+reference_traj_topic  : human_ref
 
-robot_has_human_reference: False
+robot_has_human_reference: True
 update_Kest: update_Kest
 
 n_of_wrench_bias_samples: 100

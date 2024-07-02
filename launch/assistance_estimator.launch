@@ -10,5 +10,7 @@
     args="--multiplot-config $(find human_traj_estimator)/config/rqt_multiplot_measured_updated_by_force.xml --multiplot-run-all " />
   <node pkg="rqt_multiplot" type="rqt_multiplot" name="rqt_multiplot_node_torques"  respawn = "false" 
     args="--multiplot-config $(find human_traj_estimator)/config/rqt_multiplot_measured_updated_by_torque.xml --multiplot-run-all " />
+  <node pkg="rqt_multiplot" type="rqt_multiplot" name="rqt_multiplot_node_flag"  respawn = "false" 
+    args="--multiplot-config $(find human_traj_estimator)/config/rqt_multiplot_check_init_pos_ok_flag.xml --multiplot-run-all " />
 
 </launch>

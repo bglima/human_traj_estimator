@@ -7,6 +7,8 @@
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/String.h>
 #include <tf_conversions/tf_eigen.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <eigen_conversions/eigen_msg.h>
@@ -43,8 +45,17 @@ public:
   
   Eigen::Affine3d T_robot_base_targetpose_;
   bool init_pos_ok;
+  bool robot_ref;
 
   std::string wrench_topic;
+  std::string dwrench_topic;
+  std::string vel_topic;
+  std::string pos_topic;
+  std::string assistance_topic;
+  std::string reference_traj_topic;
+  std::string update_Kest;
+  std::string alpha_topic;
+  std::string bool_topic;
 
 private:
   ros::NodeHandle nh_;

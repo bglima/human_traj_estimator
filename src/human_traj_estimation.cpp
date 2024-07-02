@@ -19,13 +19,67 @@ TrajEstimator::TrajEstimator(ros::NodeHandle nh)
   init_pos_ok = false;
   first_cb_ = false;
 
-  if (!nh.getParam( "wrench_topic", wrench_topic))
+  if(!nh.getParam("bool_topic", bool_topic))
   {
-    wrench_topic = "filtered_wrench_base";
-    ROS_WARN_STREAM (nh.getNamespace() << " /wrench_topic not set. default " << wrench_topic );
+    bool_topic = "flag";
+    ROS_WARN_STREAM(nh.getNamespace() << "/bool_topic not set. default " << bool_topic);
   }
-  
-  if ( !nh_.getParam ( "sampling_time", dt_) )
+
+  if(!nh.getParam("alpha_topic", alpha_topic))
+  {
+    alpha_topic = "alpha";
+    ROS_WARN_STREAM(nh.getNamespace() << "/alpha_topic not set. default " << alpha_topic);
+  }
+
+  if(!nh.getParam("wrench_topic", wrench_topic))
+  {
+    wrench_topic = "franka_state_controller/F_ext";
+    ROS_WARN_STREAM(nh.getNamespace() << "/wrench_topic not set. default " << wrench_topic);
+  }
+
+  if(!nh.getParam("dwrench_topic", dwrench_topic))
+  {
+    dwrench_topic = "delta_force";
+    ROS_WARN_STREAM(nh.getNamespace() << "/dwrench_topic not set. default " << dwrench_topic);
+  }
+
+  if(!nh.getParam("vel_topic", vel_topic))
+  {
+    vel_topic = "current_velocity";
+    ROS_WARN_STREAM(nh.getNamespace() << "/vel_topic not set. default "<< vel_topic);
+  }
+
+  if(!nh.getParam("pos_topic", pos_topic))
+  {
+    pos_topic = "franka_state_controller/franka_states";
+    ROS_WARN_STREAM(nh.getNamespace() << "/pos_topic not set. default "<< pos_topic);
+  }
+
+  if(!nh.getParam("assistance_topic", assistance_topic))
+  {
+    assistance_topic = "assistance";
+    ROS_WARN_STREAM(nh.getNamespace() << "/assistance_topic not set. default " << assistance_topic);
+  }
+
+  if(!nh.getParam("reference_traj_topic", reference_traj_topic))
+  {
+    reference_traj_topic = "human_ref";
+    ROS_WARN_STREAM(nh.getNamespace() << "/reference_traj not set. default " << reference_traj_topic);
+  }
+
+  if(!nh.getParam("robot_has_human_reference", robot_ref))
+  {
+    robot_ref = false;
+    ROS_WARN_STREAM (nh.getNamespace() << "/robot_has_human_reference not set. default " << robot_ref);
+  }
+
+  if (!nh.getParam("update_Kest", update_Kest))
+  {
+    update_Kest = "update_Kest";
+    ROS_WARN_STREAM (nh.getNamespace() << " /update_Kest not set. default " << update_Kest);
+  }
+
+  if(!nh_.getParam("sampling_time", dt_))
   {
     dt_=0.008;
     ROS_WARN_STREAM (nh_.getNamespace() << " /sampling_time set. default : "<< dt_);
@@ -54,15 +108,20 @@ TrajEstimator::TrajEstimator(ros::NodeHandle nh)
     ROS_WARN_STREAM (nh_.getNamespace() << " /tool_link set. default : " << tool_link_);
   }
 
-  ROS_INFO_STREAM (nh_.getNamespace() << " /K_tras set to: " << K_tras_);
-  ROS_INFO_STREAM (nh_.getNamespace() << " /K_rot set to : " << K_rot_);
-  
   if ( !nh_.getParam ( "max_fl", max_fl_) )
   {
     max_fl_ = 0.007;
     ROS_WARN_STREAM (nh_.getNamespace() << " /max_fl set. default: " << max_fl_);
   }
-  
+
+  ROS_INFO_STREAM (nh_.getNamespace() << " /K_tras set to: " << K_tras_);
+  ROS_INFO_STREAM (nh_.getNamespace() << " /K_rot set to : " << K_rot_);
+  ROS_INFO_STREAM (nh_.getNamespace() << " /bool_topic set to: " << bool_topic);
+  ROS_INFO_STREAM (nh_.getNamespace() << " /alpha_topic set to : " << alpha_topic);
+  ROS_INFO_STREAM (nh_.getNamespace() << " /wrench_topic set to : " << wrench_topic);
+  ROS_INFO_STREAM (nh_.getNamespace() << " /pos_topic set to : " << pos_topic);
+  ROS_INFO_STREAM (nh_.getNamespace() << " /reference_traj_topic set to : " << reference_traj_topic);
+
 }
 
 Eigen::Vector6d TrajEstimator::getVel() {return velocity_;}
@@ -117,7 +176,6 @@ void TrajEstimator::dWrenchCallback(const geometry_msgs::WrenchStampedConstPtr& 
   dW_(5) = msg->wrench.torque.z;
 }
 
-
 void TrajEstimator::velocityCallback(const geometry_msgs::TwistStampedConstPtr& msg )
 {
   velocity_(0) = msg->twist.linear.x;
@@ -131,7 +189,6 @@ void TrajEstimator::velocityCallback(const geometry_msgs::TwistStampedConstPtr& 
 void TrajEstimator::currPoseCallback(const franka_msgs::FrankaStateConstPtr& msg)
 {   
 
-
   // Modified part. cur_pos_ is the variable that needs to assigned after the procedure.
   // A matrix with the values passed by msg is initialized, recreating the rotation matrix 
   Eigen::Matrix3d rot_mat;
@@ -139,23 +196,17 @@ void TrajEstimator::currPoseCallback(const franka_msgs::FrankaStateConstPtr& msg
              msg->O_T_EE[1], msg->O_T_EE[5], msg->O_T_EE[9],
              msg->O_T_EE[2], msg->O_T_EE[6], msg->O_T_EE[10];
 
-  // std::cout << "rot_mat: \n" << rot_mat << "\n";
-
   // Once the matrix has been defined, we need to transform it into a quaternion form
   Eigen::Quaterniond rot_mat_in_quaternion(rot_mat);
-
-  // std::cout << "rot_mat_in_quaternion matrix form: \n" << rot_mat_in_quaternion.matrix() << "\n";
-  // std::cout << "rot_mat_in_quaternion.vec() form: \n" << rot_mat_in_quaternion.vec() << "\n";
-  // std::cout << "rot_mat_in_quaternion.w() form: \n" << rot_mat_in_quaternion.w() << "\n";
 
   // Assignment of the relevant parameters to a geometry_msgs::PoseStamped type
   cur_pos_.header = msg->header;
   cur_pos_.pose.position.x = msg->O_T_EE[12];
   cur_pos_.pose.position.y = msg->O_T_EE[13];
   cur_pos_.pose.position.z = msg->O_T_EE[14];
-  cur_pos_.pose.orientation.x = rot_mat_in_quaternion.vec()[0];
-  cur_pos_.pose.orientation.y = rot_mat_in_quaternion.vec()[1];
-  cur_pos_.pose.orientation.z = rot_mat_in_quaternion.vec()[2];
+  cur_pos_.pose.orientation.x = rot_mat_in_quaternion.x();
+  cur_pos_.pose.orientation.y = rot_mat_in_quaternion.y();
+  cur_pos_.pose.orientation.z = rot_mat_in_quaternion.z();
   cur_pos_.pose.orientation.w = rot_mat_in_quaternion.w();
 
   if (!init_pos_ok)
@@ -217,11 +268,9 @@ bool TrajEstimator::computeWrenchBias(std_srvs::Trigger::Request &req, std_srvs:
   return true;
 }
 
-
-
 bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
 {
-  if (init_pos_ok)
+  if(init_pos_ok)
   {
     
 //     ret.pose.orientation = init_pose_.pose.orientation;
@@ -258,29 +307,21 @@ bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
 
       Eigen::Quaterniond rotation_quaternion(T_robot_base_targetpose_.rotation());
 
-      // std::cout << "rotation_quaternion matrix form: \n" << rotation_quaternion.matrix() << "\n";
-      // std::cout << "rotation_quaternion.vec() form: \n" << rotation_quaternion.vec() << "\n";
-      // std::cout << "rotation_quaternion.w() form: \n" << rotation_quaternion.w() << "\n";
-
       // A rotation matrix based on the product of all the three rotational component (defined as matrices starting from AngleAxis form) is defined.
       Eigen::Matrix3d m;
       m = Eigen::AngleAxisd(delta_x, Eigen::Vector3d::UnitX())
         * Eigen::AngleAxisd(delta_y, Eigen::Vector3d::UnitY())
         * Eigen::AngleAxisd(delta_z, Eigen::Vector3d::UnitZ());
       
-      // std::cout << "m matrix: \n" << m << "\n";
-      
+      // Definition of the additional rotation to be multiplied to the current state
       Eigen::Quaterniond additional_rotation_quaternion(m);
-
-      // std::cout << "additional_rotation_quaternion matrix form: \n" << additional_rotation_quaternion.matrix() << "\n";
-      // std::cout << "additional_rotation_quaternion.vec() form: \n" << additional_rotation_quaternion.vec() << "\n";
-      // std::cout << "additional_rotation_quaternion.w() form: \n" << additional_rotation_quaternion.w() << "\n";
 
       // Upgrade of the rotation_matrix with the new values obtained from the human force/torque.
       rotation_quaternion = additional_rotation_quaternion * rotation_quaternion;
 
       // Updating the orientation part of the PoseStamped message type ret and printing it
       tf2::convert(rotation_quaternion, ret.pose.orientation);
+
       // ROS_INFO_STREAM("pose:\n"<<ret);
     }
     last_pose_ = ret;
@@ -293,9 +334,6 @@ bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
   return true;
 }
 
-
-
-
 // bool TrajEstimator::updateKestSrv(pbo_service::updateKest::Request  &req,
 //                                   pbo_service::updateKest::Response &res)
 // {
@@ -305,9 +343,6 @@ bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
 //   res.res = true;
 //   return true;
 // }
-
-
-
 
 bool TrajEstimator::resetPose(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
 {
