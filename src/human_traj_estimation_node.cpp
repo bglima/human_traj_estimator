@@ -13,17 +13,17 @@ int main(int argc, char **argv)
 
   TrajEstimator te(nh);  
 
-  ros::Subscriber wrench_sub    = nh.subscribe(te.wrench_topic , 30, &TrajEstimator::wrenchCallback, &te);
-  ros::Subscriber dwrench_sub   = nh.subscribe(te.dwrench_topic, 30, &TrajEstimator::dWrenchCallback, &te);
-  ros::Subscriber velocity_sub  = nh.subscribe(te.vel_topic    , 30, &TrajEstimator::velocityCallback, &te);
-  ros::Subscriber pose_sub      = nh.subscribe(te.pos_topic    , 30, &TrajEstimator::currPoseCallback, &te);
-  ros::Subscriber alpha_sub     = nh.subscribe(te.alpha_topic  , 30, &TrajEstimator::alphaCallback, &te);
+  ros::Subscriber wrench_sub    = nh.subscribe(te.wrench_topic , 10, &TrajEstimator::wrenchCallback, &te);
+  ros::Subscriber dwrench_sub   = nh.subscribe(te.dwrench_topic, 10, &TrajEstimator::dWrenchCallback, &te);
+  ros::Subscriber velocity_sub  = nh.subscribe(te.vel_topic    , 10, &TrajEstimator::velocityCallback, &te);
+  ros::Subscriber pose_sub      = nh.subscribe(te.pos_topic    , 10, &TrajEstimator::currPoseCallback, &te);
+  ros::Subscriber alpha_sub     = nh.subscribe(te.alpha_topic  , 10, &TrajEstimator::alphaCallback, &te);
 
   // Publishers part
-  ros::Publisher assistance_pub = nh.advertise<geometry_msgs::TwistStamped>(te.assistance_topic,30);
-  ros::Publisher trajectory_pub = nh.advertise<geometry_msgs::PoseStamped>(te.reference_traj_topic,30);
-  ros::Publisher r_trajectory_pub = nh.advertise<geometry_msgs::PoseStamped>("/target_cart_pose",30);
-  ros::Publisher bool_pub = nh.advertise<std_msgs::Bool>(te.bool_topic, 30);
+  ros::Publisher assistance_pub = nh.advertise<geometry_msgs::TwistStamped>(te.assistance_topic, 10);
+  ros::Publisher trajectory_pub = nh.advertise<geometry_msgs::PoseStamped>(te.reference_traj_topic, 10);
+  ros::Publisher r_trajectory_pub = nh.advertise<geometry_msgs::PoseStamped>("/target_cart_pose", 10);
+  ros::Publisher bool_pub = nh.advertise<std_msgs::Bool>(te.bool_topic, 10);
 
   // Boolean variable definition
   std_msgs::Bool check_flag;
@@ -35,7 +35,7 @@ int main(int argc, char **argv)
   
   ros::Duration(0.1).sleep();
   
-  ros::Rate rate(5);
+  ros::Rate rate(25);
   
   static tf::TransformBroadcaster br;
 
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
       br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "base_link", "human_trg_pose"));
       te.init_pos_ok = false;
       check_flag.data = te.init_pos_ok;
-      bool_pub.publish(check_flag); // In this case, it is true
+      bool_pub.publish(check_flag); // In this case, it is false
     }
     
     ROS_INFO_STREAM_THROTTLE(5.0,"looping .");
