@@ -114,6 +114,26 @@ TrajEstimator::TrajEstimator(ros::NodeHandle nh)
     ROS_WARN_STREAM (nh_.getNamespace() << " /max_fl set. default: " << max_fl_);
   }
 
+  if ( !nh_.getParam ( "max_fl", max_fl_) )
+  {
+    max_fl_ = 0.007;
+    ROS_WARN_STREAM (nh_.getNamespace() << " /max_fl set. default: " << max_fl_);
+  }
+
+  if ( !nh_.getParam("n_of_wrench_bias_samples", n_of_wrench_bias_samples_) )
+  {
+    n_of_wrench_bias_samples_ = 10;
+    ROS_WARN_STREAM (nh_.getNamespace() << " /n_of_wrench_bias_samples set. default: " << n_of_wrench_bias_samples_);
+
+  }
+  
+  if ( !nh_.getParam("norm_deadband", norm_deadband_) )
+  {
+    norm_deadband_ = 2;
+    ROS_WARN_STREAM (nh_.getNamespace() << " /norm_deadband set. default: " << norm_deadband_);
+
+  }
+
   ROS_INFO_STREAM (nh_.getNamespace() << " /K_tras set to: " << K_tras_);
   ROS_INFO_STREAM (nh_.getNamespace() << " /K_rot set to : " << K_rot_);
   ROS_INFO_STREAM (nh_.getNamespace() << " /bool_topic set to: " << bool_topic);
@@ -121,7 +141,7 @@ TrajEstimator::TrajEstimator(ros::NodeHandle nh)
   ROS_INFO_STREAM (nh_.getNamespace() << " /wrench_topic set to : " << wrench_topic);
   ROS_INFO_STREAM (nh_.getNamespace() << " /pos_topic set to : " << pos_topic);
   ROS_INFO_STREAM (nh_.getNamespace() << " /reference_traj_topic set to : " << reference_traj_topic);
-
+  ROS_INFO_STREAM (nh_.getNamespace() << " /norm_deadband set to : " << norm_deadband_);
 }
 
 Eigen::Vector6d TrajEstimator::getVel() {return velocity_;}
@@ -227,8 +247,6 @@ void TrajEstimator::currPoseCallback(const franka_msgs::FrankaStateConstPtr& msg
 
 bool TrajEstimator::computeWrenchBias(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
 {
-  nh_.getParam("n_of_wrench_bias_samples", n_of_wrench_bias_samples_);
-  
   Eigen::Vector6d wrench_bias_cumulator = Eigen::Vector6d::Zero();
 
   ROS_INFO("wrench topic is: %s", wrench_topic.c_str());
@@ -295,32 +313,47 @@ bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
     // std::cout << "w_b_:\n" << w_b_ << "\n";
     if (!isnan(w_b_(0)))
     {
-      ret.pose.position.x += K_tras_ * w_b_(0);
-      ret.pose.position.y += K_tras_ * w_b_(1);
-      ret.pose.position.z += K_tras_ * w_b_(2);
 
-      // I've modified this part since the already developed script had only the delta_z component for the upgrade of the rotation.
-      double delta_x = K_rot_ * w_b_(3);
-      double delta_y = K_rot_ * w_b_(4);
-      double delta_z = K_rot_ * w_b_(5);
+      // Compute the displacement error based on the current forces and stiffness
+      Eigen::Vector3d position_error = K_tras_ * w_b_.head(3);
 
-      Eigen::Quaterniond rotation_quaternion(T_robot_base_targetpose_.rotation());
+      // Check if the error is less than the deadband. If so, zero it.
+      if (position_error.norm() < norm_deadband_) 
+      {
+        position_error = Eigen::Vector3d::Zero();
+      }
+      else 
+      {
+        position_error = position_error.normalized() * (position_error.norm()-norm_deadband_);
+      }
 
-      // A rotation matrix based on the product of all the three rotational component (defined as matrices starting from AngleAxis form) is defined.
-      Eigen::Matrix3d m;
-      m = Eigen::AngleAxisd(delta_x, Eigen::Vector3d::UnitX())
-        * Eigen::AngleAxisd(delta_y, Eigen::Vector3d::UnitY())
-        * Eigen::AngleAxisd(delta_z, Eigen::Vector3d::UnitZ());
+      // Fill the returning message with the human reference pose
+      ret.pose.position.x += position_error(0);
+      ret.pose.position.y += position_error(1);
+      ret.pose.position.z += position_error(2);
+
+      // // I've modified this part since the already developed script had only the delta_z component for the upgrade of the rotation.
+      // double delta_x = K_rot_ * w_b_(3);
+      // double delta_y = K_rot_ * w_b_(4);
+      // double delta_z = K_rot_ * w_b_(5);
+
+      // Eigen::Quaterniond rotation_quaternion(T_robot_base_targetpose_.rotation());
+
+      // // A rotation matrix based on the product of all the three rotational component (defined as matrices starting from AngleAxis form) is defined.
+      // Eigen::Matrix3d m;
+      // m = Eigen::AngleAxisd(delta_x, Eigen::Vector3d::UnitX())
+      //   * Eigen::AngleAxisd(delta_y, Eigen::Vector3d::UnitY())
+      //   * Eigen::AngleAxisd(delta_z, Eigen::Vector3d::UnitZ());
       
-      // Definition of the additional rotation to be multiplied to the current state
-      Eigen::Quaterniond additional_rotation_quaternion(m);
+      // // Definition of the additional rotation to be multiplied to the current state
+      // Eigen::Quaterniond additional_rotation_quaternion(m);
 
-      // Upgrade of the rotation_matrix with the new values obtained from the human force/torque.
-      rotation_quaternion = additional_rotation_quaternion * rotation_quaternion;
+      // // Upgrade of the rotation_matrix with the new values obtained from the human force/torque.
+      // rotation_quaternion = additional_rotation_quaternion * rotation_quaternion;
 
-      // Updating the orientation part of the PoseStamped message type ret and printing it
-      tf2::convert(rotation_quaternion, ret.pose.orientation);
-
+      // // Updating the orientation part of the PoseStamped message type ret and printing it
+      // tf2::convert(rotation_quaternion, ret.pose.orientation);
+       
       // ROS_INFO_STREAM("pose:\n"<<ret);
     }
     last_pose_ = ret;

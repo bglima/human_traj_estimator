@@ -89,7 +89,7 @@ private:
   
   double dt_;
 
-  double deadband_;
+  double norm_deadband_;
 
 
 /*  

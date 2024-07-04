@@ -23,6 +23,8 @@ robot_has_human_reference: True
 update_Kest: update_Kest
 
 n_of_wrench_bias_samples: 100
+norm_deadband: 0.05 # Newtons
+
 
 #K_assistance: 0.0002
 #K_assistance: 0.0001

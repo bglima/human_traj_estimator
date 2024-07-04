@@ -48,6 +48,7 @@ int main(int argc, char **argv)
     bool_pub.publish(check_flag); // In this case, it is true
 
     geometry_msgs::PoseStamped updated_human_pose_stamped;
+    
     if(!te.updatePoseEstimate(updated_human_pose_stamped))
     {
       ROS_ERROR_STREAM_THROTTLE(5.0,"error in updating the estimated pose . Is the pose initialized?");
