@@ -56,6 +56,7 @@ public:
   std::string update_Kest;
   std::string alpha_topic;
   std::string bool_topic;
+  std::string base_link;
 
 private:
   ros::NodeHandle nh_;
@@ -80,7 +81,7 @@ private:
   double K_rot_;
   
   std::string tool_link_;
-  std::string base_link_;
+
   
   double max_fl_;
   double min_fl_;

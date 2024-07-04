@@ -97,10 +97,10 @@ TrajEstimator::TrajEstimator(ros::NodeHandle nh)
     ROS_WARN_STREAM (nh_.getNamespace() << " /K_tras set. default : " << K_rot_);
   }
 
-  if ( !nh_.getParam ( "base_link", base_link_) )
+  if ( !nh_.getParam ( "base_link", base_link) )
   {
-    base_link_="base_link";
-    ROS_WARN_STREAM (nh_.getNamespace() << " /base_link set. default : " << base_link_);
+    base_link="base_link";
+    ROS_WARN_STREAM (nh_.getNamespace() << " /base_link set. default : " << base_link);
   }
   if ( !nh_.getParam ( "tool_link", tool_link_) )
   {
@@ -140,7 +140,7 @@ void TrajEstimator::wrenchCallback(const geometry_msgs::WrenchStampedConstPtr& m
 
   w_b_ += w_bias_;
 
-  // Exctract the quaternion orientation
+  // Exctract the quaternion orientation to convert it to base_frame
   Eigen::Quaterniond current_quaternion;
   tf2::fromMsg(cur_pos_.pose.orientation, current_quaternion);
 
@@ -152,7 +152,7 @@ void TrajEstimator::wrenchCallback(const geometry_msgs::WrenchStampedConstPtr& m
   Eigen::Vector3d forces(w_b_.head(3));
   Eigen::Vector3d torques(w_b_.tail(3));
 
-  // Update forces and torques
+  // Update forces and torques to be in base_frame
   forces = rotation_transform * forces;
   torques = rotation_transform * torques; // Assumes all the mass is concentrated at the EE frame
 
@@ -274,9 +274,9 @@ bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
   {
     
 //     ret.pose.orientation = init_pose_.pose.orientation;
-    if (alpha_>0.5)
-      ret.pose = last_pose_.pose;
-    else
+    // if (alpha_>0.5)
+    //   ret.pose = last_pose_.pose;
+    // else
       ret.pose = cur_pos_.pose;
     
     if(isnan(w_b_(0)))
@@ -293,8 +293,7 @@ bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
       ROS_FATAL_STREAM("w_b_(5) : " << w_b_(5));
 
     // std::cout << "w_b_:\n" << w_b_ << "\n";
-    
-    if (!isnan (w_b_(0)/std::fabs(w_b_(0))))
+    if (!isnan(w_b_(0)))
     {
       ret.pose.position.x += K_tras_ * w_b_(0);
       ret.pose.position.y += K_tras_ * w_b_(1);
@@ -349,9 +348,9 @@ bool TrajEstimator::resetPose(std_srvs::Trigger::Request &req, std_srvs::Trigger
   init_pos_ok = false;
 //   tf::TransformListener listener_;
 //   tf::StampedTransform transform_;
-//   ROS_INFO_STREAM("reading transform from " << base_link_ << " to " << tool_link_);
-//   listener_.waitForTransform(base_link_, tool_link_, ros::Time::now(), ros::Duration(1.0));
-//   listener_.lookupTransform (base_link_, tool_link_, ros::Time(0)    , transform_);
+//   ROS_INFO_STREAM("reading transform from " << base_link << " to " << tool_link_);
+//   listener_.waitForTransform(base_link, tool_link_, ros::Time::now(), ros::Duration(1.0));
+//   listener_.lookupTransform (base_link, tool_link_, ros::Time(0)    , transform_);
 //   
 //   Eigen::Affine3d tmp;
 //   tf::poseTFToEigen(transform_,tmp

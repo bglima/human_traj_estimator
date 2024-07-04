@@ -130,7 +130,7 @@
                         <visible>true</visible>
                     </legend>
                     <plot_rate>30</plot_rate>
-                    <title>x translation component</title>
+                    <title>x translation component in base_frame</title>
                 </column_0>
                 <column_1>
                     <axes>
@@ -204,7 +204,7 @@
                         <visible>true</visible>
                     </legend>
                     <plot_rate>30</plot_rate>
-                    <title>Force measured along x </title>
+                    <title>Force measured along x in EE frame</title>
                 </column_1>
             </row_0>
             <row_1>
@@ -331,7 +331,7 @@
                         <visible>true</visible>
                     </legend>
                     <plot_rate>30</plot_rate>
-                    <title>y translation component</title>
+                    <title>y translation component in base_frame</title>
                 </column_0>
                 <column_1>
                     <axes>
@@ -405,7 +405,7 @@
                         <visible>true</visible>
                     </legend>
                     <plot_rate>30</plot_rate>
-                    <title>Force measured along y</title>
+                    <title>Force measured along y  in EE frame</title>
                 </column_1>
             </row_1>
             <row_2>
@@ -532,7 +532,7 @@
                         <visible>true</visible>
                     </legend>
                     <plot_rate>30</plot_rate>
-                    <title>z translation component</title>
+                    <title>z translation component in base_frame</title>
                 </column_0>
                 <column_1>
                     <axes>
@@ -606,7 +606,7 @@
                         <visible>true</visible>
                     </legend>
                     <plot_rate>30</plot_rate>
-                    <title>Force measured along z</title>
+                    <title>Force measured along z  in EE frame</title>
                 </column_1>
             </row_2>
         </plots>

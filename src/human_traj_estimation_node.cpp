@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "traj_estimation_node");
   ros::NodeHandle nh;
-  ros::AsyncSpinner spinner(4);
+  ros::AsyncSpinner spinner(5);
   spinner.start();
 
   TrajEstimator te(nh);  
@@ -47,31 +47,27 @@ int main(int argc, char **argv)
     check_flag.data = te.init_pos_ok;
     bool_pub.publish(check_flag); // In this case, it is true
 
-    geometry_msgs::PoseStamped p;
-    if(!te.updatePoseEstimate(p))
+    geometry_msgs::PoseStamped updated_human_pose_stamped;
+    if(!te.updatePoseEstimate(updated_human_pose_stamped))
     {
       ROS_ERROR_STREAM_THROTTLE(5.0,"error in updating the estimated pose . Is the pose initialized?");
     }
     else
     {
-      p.header.stamp = ros::Time::now();
-      trajectory_pub.publish(p);
-      check_flag.data = te.init_pos_ok;
-      bool_pub.publish(check_flag); // In this case, it is true
-      if(te.robot_ref)
-        r_trajectory_pub.publish(p);
+      updated_human_pose_stamped.header.stamp = ros::Time::now();
+      trajectory_pub.publish(updated_human_pose_stamped);
+      // check_flag.data = te.init_pos_ok;
+      // bool_pub.publish(check_flag); // In this case, it is true
       
-      
-      tf::Transform transform;
-      
-      tf::poseMsgToTF(p.pose,transform);
-      br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "base_link", "human_trg_pose"));
-      te.init_pos_ok = false;
-      check_flag.data = te.init_pos_ok;
-      bool_pub.publish(check_flag); // In this case, it is false
+      tf::Transform human_reference_tf;
+      tf::poseMsgToTF(updated_human_pose_stamped.pose, human_reference_tf);
+      br.sendTransform(tf::StampedTransform(human_reference_tf, ros::Time::now(), te.base_link, "human_trg_pose"));
+      // te.init_pos_ok = false;
+      // check_flag.data = te.init_pos_ok;
+      // bool_pub.publish(check_flag); // In this case, it is false
     }
     
-    ROS_INFO_STREAM_THROTTLE(5.0,"looping .");
+    // ROS_INFO_STREAM_THROTTLE(5.0,"looping .");
     
     rate.sleep();
   }
