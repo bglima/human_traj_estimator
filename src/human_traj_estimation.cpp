@@ -160,7 +160,7 @@ void TrajEstimator::wrenchCallback(const geometry_msgs::WrenchStampedConstPtr& m
 
   w_b_ += w_bias_;
 
-  // Exctract the quaternion orientation to convert it to base_frame
+  // Extract the quaternion orientation to convert it to base_frame
   Eigen::Quaterniond current_quaternion;
   tf2::fromMsg(cur_pos_.pose.orientation, current_quaternion);
 
@@ -251,16 +251,16 @@ bool TrajEstimator::computeWrenchBias(std_srvs::Trigger::Request &req, std_srvs:
 
   ROS_INFO("wrench topic is: %s", wrench_topic.c_str());
 
-  for (int i=0; i<n_of_wrench_bias_samples_; i++)
+  for (int i = 0; i < n_of_wrench_bias_samples_; i++)
   {
     auto wrench_msg_ptr = ros::topic::waitForMessage<geometry_msgs::WrenchStamped>(wrench_topic, nh_);
     
-    if(wrench_msg_ptr != NULL){
+    if(wrench_msg_ptr != NULL)
+    {
       
       geometry_msgs::WrenchStamped wrench_msg = *wrench_msg_ptr;
 
       Eigen::Vector6d wrench;
-      
 
       wrench(0) = wrench_msg.wrench.force.x;
       wrench(1) = wrench_msg.wrench.force.y;
@@ -280,7 +280,7 @@ bool TrajEstimator::computeWrenchBias(std_srvs::Trigger::Request &req, std_srvs:
 
   w_bias_ = wrench_bias_cumulator / n_of_wrench_bias_samples_;
 
-  ROS_INFO_STREAM("resetting wrench bias. this wrench: \n" << w_bias_);
+  ROS_INFO_STREAM("resetting wrench bias. This wrench: \n" << w_bias_);
   
   res.success=true;
   return true;
