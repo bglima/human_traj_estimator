@@ -3,14 +3,16 @@
 
   <node pkg="human_traj_estimator" type="human_traj_estimation_node" name="human_traj_estimation_node" output="screen"/>
   <rosparam command="load" file="$(find human_traj_estimator)/config/traj_estimation_config.yaml" />
+
     <!-- running also the listener node for reading the RPY values of the robot orientation-->
   <node pkg="human_traj_estimator" type="listener.py" name="listener_node_RPY_measured_and_updated" output="screen"/>
     <!-- Run two multiplots, one for the forces and corresponding updated position, one for the torques and corresponding updated orientation -->
   <node pkg="rqt_multiplot" type="rqt_multiplot" name="rqt_multiplot_node_forces"  respawn = "false" 
     args="--multiplot-config $(find human_traj_estimator)/config/rqt_multiplot_measured_updated_by_force.xml --multiplot-run-all " />
-  <node pkg="rqt_multiplot" type="rqt_multiplot" name="rqt_multiplot_node_torques"  respawn = "false" 
-    args="--multiplot-config $(find human_traj_estimator)/config/rqt_multiplot_measured_updated_by_torque.xml --multiplot-run-all " />
-  <node pkg="rqt_multiplot" type="rqt_multiplot" name="rqt_multiplot_node_flag"  respawn = "false" 
-    args="--multiplot-config $(find human_traj_estimator)/config/rqt_multiplot_check_init_pos_ok_flag.xml --multiplot-run-all " />
+
+<!-- Remember to add the double dash before after args=" -->
+  <!-- <node pkg="rqt_multiplot" type="rqt_multiplot" name="rqt_multiplot_node_torques" respawn = "false" args=" multiplot-config $(find human_traj_estimator)/config/rqt_multiplot_measured_updated_by_torque.xml multiplot-run-all " /> -->
+
+  <!-- <node pkg="rqt_multiplot" type="rqt_multiplot" name="rqt_multiplot_node_flag"  respawn = "false" args="multiplot-config $(find human_traj_estimator)/config/rqt_multiplot_check_init_pos_ok_flag.xml multiplot-run-all " /> -->
 
 </launch>
