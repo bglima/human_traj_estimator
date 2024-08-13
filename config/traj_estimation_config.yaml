@@ -1,6 +1,6 @@
 #wrench_topic    : "filtered_wrench_base"
 
-sampling_time: 0.008
+sampling_rate: 25
 
 K_tras: 0.007 #0.00005
 K_rot: 0.0005 #0.0000001

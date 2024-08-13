@@ -36,6 +36,7 @@ public:
                  std_srvs::Trigger::Response &res);
   bool computeWrenchBias(std_srvs::Trigger::Request  &req,
                  std_srvs::Trigger::Response &res);
+  geometry_msgs::WrenchStamped getCurrentHummanAppliedWrenchUnbiased();
   
 //   bool updateKestSrv( pbo_service::updateKest::Request  &req,
 //                       pbo_service::updateKest::Response &res);
@@ -58,6 +59,8 @@ public:
   std::string bool_topic;
   std::string base_link;
 
+  double rate;
+
 private:
   ros::NodeHandle nh_;
   
@@ -65,6 +68,7 @@ private:
   ros::Publisher al_pub_;
   
   Eigen::Vector6d w_b_;
+  geometry_msgs::WrenchStamped w_b_msg_;
   Eigen::Vector6d velocity_;
   Eigen::Vector6d dW_;
 
@@ -87,10 +91,8 @@ private:
   double min_fl_;
   double alpha_;
   
-  double dt_;
 
   double norm_deadband_;
-
 
 /*  
   fl::Engine*         engine_;

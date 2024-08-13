@@ -7,7 +7,6 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <franka_msgs/FrankaState.h>
 
-
 TrajEstimator::TrajEstimator(ros::NodeHandle nh)
 :nh_(nh)
 {
@@ -79,10 +78,10 @@ TrajEstimator::TrajEstimator(ros::NodeHandle nh)
     ROS_WARN_STREAM (nh.getNamespace() << " /update_Kest not set. default " << update_Kest);
   }
 
-  if(!nh_.getParam("sampling_time", dt_))
+  if(!nh_.getParam("sampling_rate", rate))
   {
-    dt_=0.008;
-    ROS_WARN_STREAM (nh_.getNamespace() << " /sampling_time set. default : "<< dt_);
+    rate = 30;
+    ROS_WARN_STREAM (nh_.getNamespace() << " /sampling_rate set. default : "<< rate);
   }
   
   if ( !nh_.getParam ( "K_tras", K_tras_) )
@@ -179,6 +178,15 @@ void TrajEstimator::wrenchCallback(const geometry_msgs::WrenchStampedConstPtr& m
   // Give it back to the original attribute
   w_b_.head(3) = forces;
   w_b_.tail(3) = torques;
+
+  w_b_msg_ = geometry_msgs::WrenchStamped();
+  w_b_msg_.wrench.force.x = w_b_(0);
+  w_b_msg_.wrench.force.y = w_b_(1);
+  w_b_msg_.wrench.force.z = w_b_(2);
+  w_b_msg_.wrench.torque.x = w_b_(3);
+  w_b_msg_.wrench.torque.y = w_b_(4);
+  w_b_msg_.wrench.torque.z = w_b_(5);
+
 }
 
 void TrajEstimator::alphaCallback(const std_msgs::Float32ConstPtr& msg)
@@ -285,6 +293,12 @@ bool TrajEstimator::computeWrenchBias(std_srvs::Trigger::Request &req, std_srvs:
   res.success=true;
   return true;
 }
+
+geometry_msgs::WrenchStamped TrajEstimator::getCurrentHummanAppliedWrenchUnbiased()
+{
+  return w_b_msg_;
+}
+
 
 bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
 {
