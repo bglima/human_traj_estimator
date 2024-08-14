@@ -39,7 +39,7 @@ def updatedcallback(data):
     # print(RPY)
 
     # Publishing the error to a new topic 
-    dt = 0.008
+    dt = 1/30
     rate = rospy.Rate(1/dt)
 
     pub1 = rospy.Publisher("/Roll_updated", std_msgs.msg.Float32, queue_size=1)
@@ -68,7 +68,7 @@ def measuredcallback(data):
     # print(RPY)
 
     # Publishing the error to a new topic 
-    dt = 0.008
+    dt = 1/30
     rate = rospy.Rate(1/dt)
 
     pub1 = rospy.Publisher("/Roll_measured", std_msgs.msg.Float32, queue_size=1)
