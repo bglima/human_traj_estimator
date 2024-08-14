@@ -20,10 +20,11 @@ int main(int argc, char **argv)
   ros::Subscriber alpha_sub     = nh.subscribe(te.alpha_topic  , 30, &TrajEstimator::alphaCallback, &te);
 
   // Publishers part
-  ros::Publisher assistance_pub = nh.advertise<geometry_msgs::TwistStamped>(te.assistance_topic, 30);
-  ros::Publisher trajectory_pub = nh.advertise<geometry_msgs::PoseStamped>(te.reference_traj_topic, 30);
-  ros::Publisher r_trajectory_pub = nh.advertise<geometry_msgs::PoseStamped>("/target_cart_pose", 30);
-  ros::Publisher bool_pub = nh.advertise<std_msgs::Bool>(te.bool_topic, 30);
+  ros::Publisher assistance_pub = nh.advertise<geometry_msgs::TwistStamped>(te.assistance_topic, 10);
+  ros::Publisher trajectory_pub = nh.advertise<geometry_msgs::PoseStamped>(te.reference_traj_topic, 10);
+  ros::Publisher r_trajectory_pub = nh.advertise<geometry_msgs::PoseStamped>("/target_cart_pose", 10);
+  ros::Publisher bool_pub = nh.advertise<std_msgs::Bool>(te.bool_topic, 10);
+  ros::Publisher human_applied_wrench_pub = nh.advertise<geometry_msgs::WrenchStamped>("/human_applied_wrench_in_base_frame", 10);
 
   // Boolean variable definition
   std_msgs::Bool check_flag;
@@ -48,6 +49,7 @@ int main(int argc, char **argv)
     bool_pub.publish(check_flag); // In this case, it is true
 
     geometry_msgs::PoseStamped updated_human_pose_stamped;
+    geometry_msgs::WrenchStamped human_applied_wrench = te.getCurrentHummanAppliedWrenchUnbiased();
     
     if(!te.updatePoseEstimate(updated_human_pose_stamped))
     {
@@ -57,6 +59,9 @@ int main(int argc, char **argv)
     {
       updated_human_pose_stamped.header.stamp = ros::Time::now();
       trajectory_pub.publish(updated_human_pose_stamped);
+      human_applied_wrench_pub.publish(human_applied_wrench);
+      // check_flag.data = te.init_pos_ok;
+      // bool_pub.publish(check_flag); // In this case, it is true
       
       tf::Transform human_reference_tf;
       tf::poseMsgToTF(updated_human_pose_stamped.pose, human_reference_tf);
