@@ -16,6 +16,8 @@
 // #include <pbo_service/updateKest.h>
 #include <std_srvs/Trigger.h>
 #include <franka_msgs/FrankaState.h>
+#include <pluginlib/class_loader.h>
+#include <filters/filter_base.hpp>
 
 class TrajEstimator
 {
@@ -37,6 +39,8 @@ public:
   bool computeWrenchBias(std_srvs::Trigger::Request  &req,
                  std_srvs::Trigger::Response &res);
   geometry_msgs::WrenchStamped getCurrentHummanAppliedWrenchUnbiased();
+  geometry_msgs::WrenchStamped getCurrentHummanAppliedFilteredWrenchUnbiased();
+
   
 //   bool updateKestSrv( pbo_service::updateKest::Request  &req,
 //                       pbo_service::updateKest::Response &res);
@@ -69,6 +73,11 @@ private:
   
   Eigen::Vector6d w_b_;
   geometry_msgs::WrenchStamped w_b_msg_;
+
+  Eigen::Vector6d w_b_filtered_;
+  geometry_msgs::WrenchStamped w_b_filtered_msg_;
+
+
   Eigen::Vector6d velocity_;
   Eigen::Vector6d dW_;
 
@@ -101,5 +110,16 @@ private:
   fl::OutputVariable* assistance_ ;
   */
   
+  /**
+   * @brief Loader of the superclass for the filter object.
+   */
+  pluginlib::ClassLoader<filters::MultiChannelFilterBase<double>> filter_loader_;
+
+  /**
+   * @brief Pointer to the instance of the derived filter class.
+   */
+  boost::shared_ptr<filters::MultiChannelFilterBase<double>> filter_;  
+
+  bool filter_is_configured_;
 };
 

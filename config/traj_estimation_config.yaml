@@ -2,7 +2,7 @@
 
 sampling_rate: 25
 
-K_tras: 0.007 #0.00005
+K_tras: 0.008 #0.00005
 K_rot: 0.0005 #0.0000001
 
 base_link: panda_link0
@@ -23,12 +23,18 @@ robot_has_human_reference: True
 update_Kest: update_Kest
 
 n_of_wrench_bias_samples: 100
-norm_deadband: 0.05 # Newtons
+norm_deadband: 0.07 # meters
 
 
 #K_assistance: 0.0002
 #K_assistance: 0.0001
 #K_assistance: 0.0001
+
+ForceFilter:
+  name: force_filter
+  type: moving_average_filter/MultiChannelMovingAverageFilterDouble
+  params:
+    number_of_observations: 15
 
 
 

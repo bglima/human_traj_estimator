@@ -7,9 +7,12 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <franka_msgs/FrankaState.h>
 
-TrajEstimator::TrajEstimator(ros::NodeHandle nh)
-:nh_(nh)
+TrajEstimator::TrajEstimator(ros::NodeHandle nh) :
+  nh_(nh),
+  filter_loader_("filters", "filters::MultiChannelFilterBase<double>")
 {
+
+  
   w_b_     .setZero();
   w_bias_  .setZero();
   dW_      .setZero();
@@ -133,6 +136,17 @@ TrajEstimator::TrajEstimator(ros::NodeHandle nh)
 
   }
 
+  try
+  {
+    filter_ = filter_loader_.createInstance("moving_average_filter/MultiChannelMovingAverageFilterDouble");
+  }
+  catch(pluginlib::PluginlibException & ex)
+  {
+    ROS_ERROR("The plugin failed to initialize at the tester constructor. Error: %s", ex.what());
+  }
+
+  filter_is_configured_ = filter_->configure(6, "ForceFilter");
+
   ROS_INFO_STREAM (nh_.getNamespace() << " /K_tras set to: " << K_tras_);
   ROS_INFO_STREAM (nh_.getNamespace() << " /K_rot set to : " << K_rot_);
   ROS_INFO_STREAM (nh_.getNamespace() << " /bool_topic set to: " << bool_topic);
@@ -141,6 +155,8 @@ TrajEstimator::TrajEstimator(ros::NodeHandle nh)
   ROS_INFO_STREAM (nh_.getNamespace() << " /pos_topic set to : " << pos_topic);
   ROS_INFO_STREAM (nh_.getNamespace() << " /reference_traj_topic set to : " << reference_traj_topic);
   ROS_INFO_STREAM (nh_.getNamespace() << " /norm_deadband set to : " << norm_deadband_);
+  ROS_INFO_STREAM (nh_.getNamespace() << " filter_is_configured : " << filter_is_configured_);
+
 }
 
 Eigen::Vector6d TrajEstimator::getVel() {return velocity_;}
@@ -159,6 +175,23 @@ void TrajEstimator::wrenchCallback(const geometry_msgs::WrenchStampedConstPtr& m
 
   w_b_ += w_bias_;
 
+  std::vector<double> w_b_std(w_b_.data(), w_b_.data() + w_b_.size());
+  std::vector<double> w_b_std_filtered(6, 0);
+
+  filter_->update(w_b_std, w_b_std_filtered);
+
+  w_b_filtered_ = Eigen::Vector6d(w_b_std_filtered.data());
+
+  // Extract Eigen vectors
+  Eigen::Vector3d forces, forces_filtered;
+  Eigen::Vector3d torques, torques_filtered;
+
+  forces << w_b_std[0], w_b_std[1], w_b_std[2];
+  forces_filtered << w_b_std_filtered[0], w_b_std_filtered[1], w_b_std_filtered[2];
+
+  torques << w_b_std[3], w_b_std[4], w_b_std[5];
+  torques_filtered << w_b_std_filtered[3], w_b_std_filtered[4], w_b_std_filtered[5];
+
   // Extract the quaternion orientation to convert it to base_frame
   Eigen::Quaterniond current_quaternion;
   tf2::fromMsg(cur_pos_.pose.orientation, current_quaternion);
@@ -167,19 +200,21 @@ void TrajEstimator::wrenchCallback(const geometry_msgs::WrenchStampedConstPtr& m
   Eigen::Isometry3d rotation_transform = Eigen::Isometry3d::Identity();
   rotation_transform.rotate(current_quaternion);
 
-  // Extract Eigen vectors
-  Eigen::Vector3d forces(w_b_.head(3));
-  Eigen::Vector3d torques(w_b_.tail(3));
-
   // Update forces and torques to be in base_frame
   forces = rotation_transform * forces;
+  forces_filtered = rotation_transform * forces_filtered;
+  
   torques = rotation_transform * torques; // Assumes all the mass is concentrated at the EE frame
+  torques_filtered = rotation_transform * torques_filtered; // Assumes all the mass is concentrated at the EE frame
 
-  // Give it back to the original attribute
+  // Update both forces and filtered forces to the base frame
   w_b_.head(3) = forces;
   w_b_.tail(3) = torques;
+  w_b_filtered_.head(3) = forces_filtered;
+  w_b_filtered_.tail(3) = torques_filtered;
 
   w_b_msg_ = geometry_msgs::WrenchStamped();
+  w_b_msg_.header.stamp = ros::Time::now();
   w_b_msg_.wrench.force.x = w_b_(0);
   w_b_msg_.wrench.force.y = w_b_(1);
   w_b_msg_.wrench.force.z = w_b_(2);
@@ -187,6 +222,14 @@ void TrajEstimator::wrenchCallback(const geometry_msgs::WrenchStampedConstPtr& m
   w_b_msg_.wrench.torque.y = w_b_(4);
   w_b_msg_.wrench.torque.z = w_b_(5);
 
+  w_b_filtered_msg_ = geometry_msgs::WrenchStamped();
+  w_b_filtered_msg_.header.stamp = ros::Time::now();
+  w_b_filtered_msg_.wrench.force.x = w_b_filtered_(0);
+  w_b_filtered_msg_.wrench.force.y = w_b_filtered_(1);
+  w_b_filtered_msg_.wrench.force.z = w_b_filtered_(2);
+  w_b_filtered_msg_.wrench.torque.x = w_b_filtered_(3);
+  w_b_filtered_msg_.wrench.torque.y = w_b_filtered_(4);
+  w_b_filtered_msg_.wrench.torque.z = w_b_filtered_(5);
 }
 
 void TrajEstimator::alphaCallback(const std_msgs::Float32ConstPtr& msg)
@@ -299,6 +342,10 @@ geometry_msgs::WrenchStamped TrajEstimator::getCurrentHummanAppliedWrenchUnbiase
   return w_b_msg_;
 }
 
+geometry_msgs::WrenchStamped TrajEstimator::getCurrentHummanAppliedFilteredWrenchUnbiased()
+{
+  return w_b_filtered_msg_;
+}
 
 bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
 {
@@ -311,40 +358,40 @@ bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
     // else
       ret.pose = cur_pos_.pose;
     
-    if(isnan(w_b_(0)))
-      ROS_FATAL_STREAM("w_b_(0) : " << w_b_(0));
-    if(isnan(w_b_(1)))
-      ROS_FATAL_STREAM("w_b_(1) : " << w_b_(1));
-    if(isnan(w_b_(2)))
-      ROS_FATAL_STREAM("w_b_(2) : " << w_b_(2));
-    if(isnan(w_b_(3)))
-      ROS_FATAL_STREAM("w_b_(3) : " << w_b_(3));
-    if(isnan(w_b_(4)))
-      ROS_FATAL_STREAM("w_b_(4) : " << w_b_(4));
-    if(isnan(w_b_(5)))
-      ROS_FATAL_STREAM("w_b_(5) : " << w_b_(5));
+    if(isnan(w_b_filtered_(0)))
+      ROS_FATAL_STREAM("w_b_filtered_(0) : " << w_b_filtered_(0));
+    if(isnan(w_b_filtered_(1)))
+      ROS_FATAL_STREAM("w_b_filtered_(1) : " << w_b_filtered_(1));
+    if(isnan(w_b_filtered_(2)))
+      ROS_FATAL_STREAM("w_b_filtered_(2) : " << w_b_filtered_(2));
+    if(isnan(w_b_filtered_(3)))
+      ROS_FATAL_STREAM("w_b_filtered_(3) : " << w_b_filtered_(3));
+    if(isnan(w_b_filtered_(4)))
+      ROS_FATAL_STREAM("w_b_filtered_(4) : " << w_b_filtered_(4));
+    if(isnan(w_b_filtered_(5)))
+      ROS_FATAL_STREAM("w_b_filtered_(5) : " << w_b_filtered_(5));
 
     // std::cout << "w_b_:\n" << w_b_ << "\n";
-    if (!isnan(w_b_(0)))
+    if (!isnan(w_b_filtered_(0)))
     {
 
       // Compute the displacement error based on the current forces and stiffness
-      Eigen::Vector3d position_error = K_tras_ * w_b_.head(3);
+      Eigen::Vector3d position_update = K_tras_ * w_b_filtered_.head(3);
 
       // Check if the error is less than the deadband. If so, zero it.
-      if (position_error.norm() < norm_deadband_) 
+      if (position_update.norm() < norm_deadband_) 
       {
-        position_error = Eigen::Vector3d::Zero();
+        position_update = Eigen::Vector3d::Zero();
       }
       else 
       {
-        position_error = position_error.normalized() * (position_error.norm()-norm_deadband_);
+        position_update = position_update.normalized() * (position_update.norm()-norm_deadband_);
       }
 
       // Fill the returning message with the human reference pose
-      ret.pose.position.x += position_error(0);
-      ret.pose.position.y += position_error(1);
-      ret.pose.position.z += position_error(2);
+      ret.pose.position.x += position_update(0);
+      ret.pose.position.y += position_update(1);
+      ret.pose.position.z += position_update(2);
 
       // // I've modified this part since the already developed script had only the delta_z component for the upgrade of the rotation.
       // double delta_x = K_rot_ * w_b_(3);
