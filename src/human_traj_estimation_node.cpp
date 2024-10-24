@@ -36,7 +36,7 @@ int main(int argc, char **argv)
   
   ros::Duration(0.1).sleep();
   
-  ros::Rate rate(30);
+  ros::Rate rate(te.rate);
   
   static tf::TransformBroadcaster br;
 
