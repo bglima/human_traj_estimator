@@ -19,6 +19,8 @@
   <depend>eigen_conversion</depend>
   <depend>franka_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>pluginlib</depend>
+
 <!--   <depend>pbo_service</depend> -->
 
 
