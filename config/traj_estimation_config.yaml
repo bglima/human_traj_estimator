@@ -34,7 +34,7 @@ ForceFilter:
   name: force_filter
   type: moving_average_filter/MultiChannelMovingAverageFilterDouble
   params:
-    number_of_observations: 15
+    number_of_observations: 20
 
 
 
