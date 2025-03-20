@@ -222,6 +222,21 @@ void TrajEstimator::wrenchCallback(const geometry_msgs::WrenchStampedConstPtr& m
   w_b_msg_.wrench.torque.y = w_b_(4);
   w_b_msg_.wrench.torque.z = w_b_(5);
 
+  // Conversion from position norm deadband to force norm deadband
+  double force_norm_deadband = norm_deadband_/(3*K_tras_);
+
+  // ROS_INFO_STREAM("force norm deadband = " << force_norm_deadband << "\n");
+
+  // Check if the error is less than the deadband. If so, nullify it.  
+  if (w_b_filtered_.head(3).norm() < force_norm_deadband)
+  {
+    w_b_filtered_.head(3) = Eigen::Vector3d::Zero();
+  }
+  else
+  {
+    w_b_filtered_.head(3) = w_b_filtered_.head(3).normalized() * (w_b_filtered_.head(3).norm() - force_norm_deadband);
+  }
+
   w_b_filtered_msg_ = geometry_msgs::WrenchStamped();
   w_b_filtered_msg_.header.stamp = ros::Time::now();
   w_b_filtered_msg_.wrench.force.x = w_b_filtered_(0);
@@ -378,15 +393,15 @@ bool TrajEstimator::updatePoseEstimate(geometry_msgs::PoseStamped& ret)
       // Compute the displacement error based on the current forces and stiffness
       Eigen::Vector3d position_update = K_tras_ * w_b_filtered_.head(3);
 
-      // Check if the error is less than the deadband. If so, zero it.
-      if (position_update.norm() < norm_deadband_) 
-      {
-        position_update = Eigen::Vector3d::Zero();
-      }
-      else 
-      {
-        position_update = position_update.normalized() * (position_update.norm()-norm_deadband_);
-      }
+      // // Check if the error is less than the deadband. If so, zero it.
+      // if (position_update.norm() < norm_deadband_) 
+      // {
+      //   position_update = Eigen::Vector3d::Zero();
+      // }
+      // else 
+      // {
+      //   position_update = position_update.normalized() * (position_update.norm()-norm_deadband_);
+      // }
 
       // Fill the returning message with the human reference pose
       ret.pose.position.x += position_update(0);
